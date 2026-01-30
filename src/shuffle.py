@@ -29,15 +29,37 @@ Unshuffles seeded shuffles
 
 from collections import deque
 from itertools import islice
+from math import floor
 from random import Random
 
+class RandomCycle:
+    def __init__(self, seed):
+        self.seed = seed
+        self.random = Random(seed)
+        self.cache = [self.random.random() for i in range(64)]
+        self.index = 0
+
+    def nextint(self, a, b):
+        random = self.cache[self.index]
+        self.index += 1
+        return floor (a + random * b)
+
+    def prevint(self, a, b):
+        random = self.cache[self.index]
+        self.index -= 1
+        return a + random * b
+
+    def jump(self, i):
+        self.index = i
+
+
 def forward_swaps(seed):
-    random = Random(seed)
+    random = RandomCycle(seed)
     def swaps(deck_size):
         i = deck_size
         while (i > 0):
             i -= 1
-            yield [i, random.randint(0, i)]
+            yield [i, random.nextint(0, i)]
     return swaps
 
 def backward_swaps(seed):
