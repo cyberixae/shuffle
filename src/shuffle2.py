@@ -11,25 +11,11 @@ Unshuffles a list
 >>> unshuffle([4, 2, 7, 6, 3, 5, 1, 0])
 [0, 1, 2, 3, 4, 5, 6, 7]
 
->>> a = 12608590619323093763
->>> b = 13819126590027240918
->>> c = 16051947959618044397
->>> omg = LCG()
->>> assert omg.next(a) == b
->>> assert omg.prev(b) == a
->>> assert omg.next(b) == c
->>> assert omg.prev(c) == b
->>> assert omg.next(a, 2) == c
->>> assert omg.prev(c, 2) == a
->>> assert omg.next(a, 0) == a
->>> assert omg.prev(a, 0) == a
 """
 
-from collections import deque
-from itertools import islice
 from math import floor, ceil
-from random import Random
 from hashlib import sha512
+
 
 class Mod:
     def __init__(self, x, m):
@@ -53,9 +39,9 @@ class Mod:
 
 
 class LCG:
-    def __init__(self, a=6364136223846793005, c=1442695040888963407, m=pow(2, 64)):
+    def __init__(self, a, c, m):
         self.a = Mod(a, m)
-        self.v = Mod(a, m).inverse()
+        self.v = self.a.inverse()
         self.c = c
 
     def next(self, x, i=1):
@@ -71,34 +57,38 @@ class LCG:
 
 class Random:
 
-    def __init__(self, seed=0, skip=0, mix=sha512, prng=LCG()):
-        self.mix = mix
-        self.prng = prng
+    _size = 8
+    _max = pow(2, _size * 8)
+
+    def __init__(self, seed=0, skip=0):
+        self.prng = LCG(
+            6364136223846793005,
+            1442695040888963407,
+            self._max,
+        )
         self.state = self.prng.next(seed, skip)
 
-    def next(self):
-        ret = self.mix(self.state.to_bytes(8)).digest()
-        self.state = self.prng.next(self.state, 1)
-        return ret
+    def _next(self):
+        ret = self.state
+        self.state = self.prng.next(self.state)
+        return sha512(ret.to_bytes(self._size)).digest()
 
-    def prev(self):
-        self.state = self.prng.prev(self.state, 1)
-        ret = self.mix(self.state.to_bytes(8)).digest()
-        return ret
+    def _prev(self):
+        self.state = self.prng.prev(self.state)
+        ret = self.state
+        return sha512(ret.to_bytes(self._size)).digest()
 
-    def nextrat(self):
-        return int.from_bytes(self.next()[:8]) / 2**64
+    def next_ratio(self):
+        return int.from_bytes(self._next()[:self._size]) / self._max
 
-    def prevrat(self):
-        return int.from_bytes(self.prev()[:8]) / 2**64
+    def prev_ratio(self):
+        return int.from_bytes(self._prev()[:self._size]) / self._max
 
-    def nextint(self, a, b):
-        foo = floor(a + self.nextrat() * (1 + b - a))
-        return foo
+    def next_int(self, a, b):
+        return a + floor(self.next_ratio() * (1 + b - a))
 
-    def prevint(self, a, b):
-        foo = floor(a + self.prevrat() * (1 + b - a))
-        return foo
+    def prev_int(self, a, b):
+        return a + floor(self.prev_ratio() * (1 + b - a))
 
 
 def forward_swaps(seed):
@@ -107,7 +97,7 @@ def forward_swaps(seed):
         i = deck_size
         while (i > 0):
             i -= 1
-            yield [i, random.nextint(0, i)]
+            yield [i, random.next_int(0, i)]
     return swaps
 
 def backward_swaps(seed):
@@ -115,7 +105,7 @@ def backward_swaps(seed):
         random = Random(seed, deck_size)
         i = 0
         while (i < deck_size):
-            yield [i, random.prevint(0, i)]
+            yield [i, random.prev_int(0, i)]
             i += 1
     return swaps
 
