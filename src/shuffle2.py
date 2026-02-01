@@ -1,6 +1,16 @@
 """
 Reversible Shuffle 2
 
+Shuffles a list
+
+>>> shuffle(list(range(8)))
+[4, 2, 7, 6, 3, 5, 1, 0]
+
+Unshuffles a list
+
+>>> unshuffle([4, 2, 7, 6, 3, 5, 1, 0])
+[0, 1, 2, 3, 4, 5, 6, 7]
+
 >>> a = 12608590619323093763
 >>> b = 13819126590027240918
 >>> c = 16051947959618044397
@@ -13,20 +23,13 @@ Reversible Shuffle 2
 >>> assert omg.prev(c, 2) == a
 >>> assert omg.next(a, 0) == a
 >>> assert omg.prev(a, 0) == a
-
->>> bob1 = RandomCycle(0)
->>> [bob1.nextint(1, 6) for _ in range(10)]
-1
->>> bob2 = RandomCycle(0, 10)
->>> [bob2.prevint(1, 6) for _ in range(10)]
-2
-
 """
 
 from collections import deque
 from itertools import islice
 from math import floor, ceil
 from random import Random
+from hashlib import sha512
 
 class Mod:
     def __init__(self, x, m):
@@ -66,40 +69,41 @@ class LCG:
         return self.prev(int(self.v * (x - self.c)), i - 1)
 
 
-class RandomCycle:
+class Random:
 
-    MAX = 2**32
-
-    def __init__(self, seed=0, skip=0, random=LCG()):
-        self.random = random
-        self.state = self.random.next(seed, skip)
+    def __init__(self, seed=0, skip=0, mix=sha512, prng=LCG()):
+        self.mix = mix
+        self.prng = prng
+        self.state = self.prng.next(seed, skip)
 
     def next(self):
-        ret = floor(self.state / self.MAX)
-        self.state = self.random.next(self.state, 1)
+        ret = self.mix(self.state.to_bytes(8)).digest()
+        self.state = self.prng.next(self.state, 1)
         return ret
 
     def prev(self):
-        self.state = self.random.prev(self.state, 1)
-        ret = floor(self.state / self.MAX)
+        self.state = self.prng.prev(self.state, 1)
+        ret = self.mix(self.state.to_bytes(8)).digest()
         return ret
 
     def nextrat(self):
-        return self.next() / self.MAX
+        return int.from_bytes(self.next()[:8]) / 2**64
 
     def prevrat(self):
-        return self.prev() / self.MAX
+        return int.from_bytes(self.prev()[:8]) / 2**64
 
     def nextint(self, a, b):
-        return floor(a + self.nextrat() * (1 + b - a))
+        foo = floor(a + self.nextrat() * (1 + b - a))
+        return foo
 
     def prevint(self, a, b):
-        return floor(a + self.prevrat() * (1 + b - a))
+        foo = floor(a + self.prevrat() * (1 + b - a))
+        return foo
 
 
 def forward_swaps(seed):
-    random = RandomCycle(seed)
     def swaps(deck_size):
+        random = Random(seed)
         i = deck_size
         while (i > 0):
             i -= 1
@@ -107,19 +111,17 @@ def forward_swaps(seed):
     return swaps
 
 def backward_swaps(seed):
-    fw_swaps = forward_swaps(seed)
     def swaps(deck_size):
-        buffer = deque()
-        for swap in fw_swaps(deck_size):
-            buffer.appendleft(swap)
-        yield from buffer
+        random = Random(seed, deck_size)
+        i = 0
+        while (i < deck_size):
+            yield [i, random.prevint(0, i)]
+            i += 1
     return swaps
 
 def execute_swaps(deck, swaps):
     for [a, b] in swaps(len(deck)):
         deck[a], deck[b] = deck[b], deck[a]
-    def next(x):
-       return (a * x + c) % m
     return deck
 
 def shuffle(deck, seed = 0):
