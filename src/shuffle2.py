@@ -11,28 +11,53 @@ Unshuffles a list
 >>> unshuffle([4, 2, 7, 6, 3, 5, 1, 0])
 [0, 1, 2, 3, 4, 5, 6, 7]
 
+Gives different shufflings based on seed
+
+>>> show(shuffle(list('ELVIS'), 0x0_faded_ace))
+'LVIES'
+>>> show(shuffle(list('ELVIS'), 0x0_ace_added))
+'ELIVS'
+
+Unshuffles seeded shuffles
+
+>>> show(unshuffle(list('LVIES'), 0x0_faded_ace))
+'ELVIS'
+>>> show(unshuffle(list('ELIVS'), 0x0_ace_added))
+'ELVIS'
+
 """
 
-from math import floor, ceil
+from math import floor, ceil, gcd
 from hashlib import sha512
+
+
+def check_mod_arg(unsafe_f):
+    def safe_f(self, arg, *args):
+        if self.m != arg.m:
+            raise TypeError
+        return unsafe_f(self, arg, *args)
+    return safe_f
 
 
 class Mod:
     def __init__(self, x, m):
-        self.m = m
         self.x = x % m
+        self.m = m
 
     def __int__(self):
         return self.x
 
-    def __add__(self, y):
-        return Mod(self.x + y, self.m)
+    @check_mod_arg
+    def __add__(self, arg):
+        return Mod(self.x + arg.x, self.m)
 
-    def __sub__(self, y):
-        return Mod(self.x - y, self.m)
+    @check_mod_arg
+    def __sub__(self, arg):
+        return Mod(self.x - arg.x, self.m)
 
-    def __mul__(self, y):
-        return Mod(self.x * y, self.m)
+    @check_mod_arg
+    def __mul__(self, arg):
+        return Mod(self.x * arg.x, self.m)
 
     def inverse(self):
         return Mod(pow(self.x, -1, self.m), self.m)
@@ -40,19 +65,23 @@ class Mod:
 
 class LCG:
     def __init__(self, a, c, m):
+        assert gcd(c, m) == 1
         self.a = Mod(a, m)
+        self.c = Mod(c, m)
+        self.m = m
         self.v = self.a.inverse()
-        self.c = c
 
-    def next(self, x, i=1):
-        if i < 1:
-            return x
-        return self.next(int((self.a * x) + self.c), i - 1)
+    def next(self, x, s = 1):
+        tmp = Mod(x, self.m)
+        for i in range(s):
+            tmp = (self.a * tmp) + self.c
+        return int(tmp)
 
-    def prev(self, x, i=1):
-        if i < 1:
-            return x
-        return self.prev(int(self.v * (x - self.c)), i - 1)
+    def prev(self, x, s = 1):
+        tmp = Mod(x, self.m)
+        for i in range(s):
+            tmp = self.v * (tmp - self.c)
+        return int(tmp)
 
 
 class Random:
@@ -60,7 +89,7 @@ class Random:
     _size = 8
     _max = pow(2, _size * 8)
 
-    def __init__(self, seed=0, skip=0):
+    def __init__(self, seed = 0, skip = 0):
         self.prng = LCG(
             6364136223846793005,
             1442695040888963407,
