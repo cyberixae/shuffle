@@ -65,7 +65,6 @@ class Mod:
 
 class LCG:
     def __init__(self, a, c, m):
-        assert gcd(c, m) == 1
         self.a = Mod(a, m)
         self.c = Mod(c, m)
         self.m = m
@@ -87,13 +86,13 @@ class LCG:
 class Random:
 
     _size = 8
-    _max = pow(2, _size * 8)
+    _max = 2**64
 
     def __init__(self, seed = 0, skip = 0):
         self.prng = LCG(
-            6364136223846793005,
-            1442695040888963407,
-            self._max,
+            0xf9b25d65,  # Steele–Vigna (2020)
+            1,
+            2**64,
         )
         self.state = self.prng.next(seed, skip)
 
