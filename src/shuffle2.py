@@ -27,8 +27,10 @@ Unshuffles seeded shuffles
 
 """
 
+from sys import float_info
 from math import floor, ceil, gcd
 from hashlib import sha512
+
 
 
 def check_mod_arg(unsafe_f):
@@ -40,12 +42,16 @@ def check_mod_arg(unsafe_f):
 
 
 class Mod:
+
     def __init__(self, x, m):
         self.x = x % m
         self.m = m
 
     def __int__(self):
         return self.x
+
+    def inverse(self):
+        return Mod(pow(self.x, -1, self.m), self.m)
 
     @check_mod_arg
     def __add__(self, arg):
@@ -59,12 +65,12 @@ class Mod:
     def __mul__(self, arg):
         return Mod(self.x * arg.x, self.m)
 
-    def inverse(self):
-        return Mod(pow(self.x, -1, self.m), self.m)
-
 
 class LCG:
-    def __init__(self, a, c, m):
+
+    def __init__(self, size):
+        self.size = size
+        [a, c, m] = LCG._config(size)
         self.a = Mod(a, m)
         self.c = Mod(c, m)
         self.m = m
@@ -82,41 +88,63 @@ class LCG:
             tmp = self.v * (tmp - self.c)
         return int(tmp)
 
+    @staticmethod
+    def _multiplier(size):
+        match size:
+            case 64:
+                return 0xf9b25d65  # Steele–Vigna (2020)
+        raise ValueError
+
+    @staticmethod
+    def _config(size):
+        a = LCG._multiplier(size)
+        c = 1
+        m = 2 ** size
+        return [a, c, m]
+
+
+class Mixer:
+
+    def __init__(self, _hash):
+        self._hash = _hash
+
+    def mix(self, x):
+        return self._hash(x).digest()
+
 
 class Random:
 
-    _size = 8
-    _max = 2**64
-
-    def __init__(self, seed = 0, skip = 0):
-        self.prng = LCG(
-            0xf9b25d65,  # Steele–Vigna (2020)
-            1,
-            2**64,
-        )
-        self.state = self.prng.next(seed, skip)
+    def __init__(self, seed = 0, skip = 0, prng = LCG(64), mixer = Mixer(sha512)):
+        self._prng = prng
+        self._mixer = mixer
+        self._state = self._prng.next(seed, skip)
 
     def _next(self):
-        ret = self.state
-        self.state = self.prng.next(self.state)
-        return sha512(ret.to_bytes(self._size)).digest()
+        buffer = self._state.to_bytes(self._prng.size)
+        self._state = self._prng.next(self._state)
+        return self._mixer.mix(buffer)
 
     def _prev(self):
-        self.state = self.prng.prev(self.state)
-        ret = self.state
-        return sha512(ret.to_bytes(self._size)).digest()
+        self._state = self._prng.prev(self._state)
+        buffer = self._state.to_bytes(self._prng.size)
+        return self._mixer.mix(buffer)
 
     def next_ratio(self):
-        return int.from_bytes(self._next()[:self._size]) / self._max
+        return self._ratio(self._next())
 
     def prev_ratio(self):
-        return int.from_bytes(self._prev()[:self._size]) / self._max
+        return self._ratio(self._prev())
 
     def next_int(self, a, b):
         return a + floor(self.next_ratio() * (1 + b - a))
 
     def prev_int(self, a, b):
         return a + floor(self.prev_ratio() * (1 + b - a))
+
+    @staticmethod
+    def _ratio(buffer):
+        # TODO: convert to use float_info.mant_dig
+        return int.from_bytes(buffer[:8]) / 2 ** 64
 
 
 def forward_swaps(seed):
