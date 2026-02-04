@@ -4,33 +4,31 @@ Reversible Shuffle 2
 Shuffles a list
 
 >>> shuffle(list(range(8)))
-[4, 2, 7, 6, 3, 5, 1, 0]
+[7, 6, 5, 2, 0, 4, 1, 3]
 
 Unshuffles a list
 
->>> unshuffle([4, 2, 7, 6, 3, 5, 1, 0])
+>>> unshuffle([7, 6, 5, 2, 0, 4, 1, 3])
 [0, 1, 2, 3, 4, 5, 6, 7]
 
 Gives different shufflings based on seed
 
 >>> show(shuffle(list('ELVIS'), 0x0_faded_ace))
-'LVIES'
+'LIVES'
 >>> show(shuffle(list('ELVIS'), 0x0_ace_added))
-'ELIVS'
+'ILVES'
 
 Unshuffles seeded shuffles
 
->>> show(unshuffle(list('LVIES'), 0x0_faded_ace))
+>>> show(unshuffle(list('LIVES'), 0x0_faded_ace))
 'ELVIS'
->>> show(unshuffle(list('ELIVS'), 0x0_ace_added))
+>>> show(unshuffle(list('ILVES'), 0x0_ace_added))
 'ELVIS'
 
 """
 
-from sys import float_info
-from math import floor, ceil, gcd
+from math import floor, ceil
 from hashlib import sha512
-
 
 
 def check_mod_arg(unsafe_f):
@@ -143,8 +141,11 @@ class Random:
 
     @staticmethod
     def _ratio(buffer):
-        # TODO: convert to use float_info.mant_dig
-        return int.from_bytes(buffer[:8]) / 2 ** 64
+        value = int.from_bytes(buffer)
+        byte_size = len(buffer)
+        bit_size = byte_size * 8
+        max_value = 2 ** bit_size
+        return value / max_value
 
 
 def forward_swaps(seed):
