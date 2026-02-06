@@ -48,8 +48,8 @@ class Mod:
     def __int__(self):
         return self.x
 
-    def inverse(self):
-        return Mod(pow(self.x, -1, self.m), self.m)
+    def __pow__(self, arg)
+        return Mod(pow(self.x, arg, self.m), self.m)
 
     @check_mod_arg
     def __add__(self, arg):
@@ -72,7 +72,7 @@ class LCG:
         self.a = Mod(a, m)
         self.c = Mod(c, m)
         self.m = m
-        self.v = self.a.inverse()
+        self.v = self.a ** -1
 
     def next(self, x, s = 1):
         tmp = Mod(x, self.m)
