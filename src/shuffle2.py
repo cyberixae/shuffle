@@ -4,25 +4,25 @@ Reversible Shuffle 2
 Shuffles a list
 
 >>> shuffle(list(range(8)))
-[7, 6, 5, 2, 0, 4, 1, 3]
+[2, 7, 4, 5, 1, 0, 6, 3]
 
 Unshuffles a list
 
->>> unshuffle([7, 6, 5, 2, 0, 4, 1, 3])
+>>> unshuffle([2, 7, 4, 5, 1, 0, 6, 3])
 [0, 1, 2, 3, 4, 5, 6, 7]
 
 Gives different shufflings based on seed
 
->>> show(shuffle(list('ELVIS'), 0x0_faded_ace))
+>>> show(shuffle(list('ELVIS'), 0x2050))
 'LIVES'
->>> show(shuffle(list('ELVIS'), 0x0_ace_added))
+>>> show(shuffle(list('ELVIS'), 0x1320))
 'ILVES'
 
 Unshuffles seeded shuffles
 
->>> show(unshuffle(list('LIVES'), 0x0_faded_ace))
+>>> show(unshuffle(list('LIVES'), 0x2050))
 'ELVIS'
->>> show(unshuffle(list('ILVES'), 0x0_ace_added))
+>>> show(unshuffle(list('ILVES'), 0x1320))
 'ELVIS'
 
 """
