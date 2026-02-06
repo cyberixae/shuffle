@@ -48,7 +48,7 @@ class Mod:
     def __int__(self):
         return self.x
 
-    def __pow__(self, arg)
+    def __pow__(self, arg):
         return Mod(pow(self.x, arg, self.m), self.m)
 
     @check_mod_arg
@@ -115,7 +115,11 @@ class Random:
     def __init__(self, seed = 0, skip = 0, prng = LCG(64), mixer = Mixer(sha512)):
         self._prng = prng
         self._mixer = mixer
-        self._state = self._prng.next(seed, skip)
+        seed_length = ceil(seed.bit_length() / 8)
+        seed_bytes = seed.to_bytes(seed_length)
+        init_bytes = mixer.mix(seed_bytes)
+        init_value = int.from_bytes(init_bytes)
+        self._state = self._prng.next(init_value, skip)
 
     def _next(self):
         buffer = self._state.to_bytes(self._prng.size)
