@@ -73,6 +73,10 @@ class Mod:
     def __mul__(self, arg):
         return Mod(self.x * arg.x, self.m)
 
+    @check_mod_arg
+    def __truediv__(self, arg):
+        return Mod(self.x * pow(arg.x, -1, self.m), self.m)
+
 
 class LCG:
 
