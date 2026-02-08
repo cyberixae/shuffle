@@ -45,6 +45,9 @@ class Mod:
         self.x = x % m
         self.m = m
 
+    def __repr__(self):
+        return 'Mod(' + repr(self.x) + ', ' + repr(self.m) + ')'
+
     def __int__(self):
         return self.x
 
