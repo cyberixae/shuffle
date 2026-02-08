@@ -55,6 +55,10 @@ class Mod:
         return Mod(pow(self.x, arg, self.m), self.m)
 
     @check_mod_arg
+    def __eq__(self, arg):
+        return arg.x == self.x
+
+    @check_mod_arg
     def __add__(self, arg):
         return Mod(self.x + arg.x, self.m)
 
