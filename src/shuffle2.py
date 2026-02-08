@@ -51,6 +51,9 @@ class Mod:
     def __int__(self):
         return self.x
 
+    def __contains__(self, arg):
+        return Mod(arg, self.m) == self
+
     def __pow__(self, arg):
         return Mod(pow(self.x, arg, self.m), self.m)
 
