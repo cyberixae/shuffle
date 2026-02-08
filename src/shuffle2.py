@@ -86,7 +86,6 @@ class LCG:
         self.a = Mod(a, m)
         self.c = Mod(c, m)
         self.m = m
-        self.v = self.a ** -1
 
     def next(self, x, s = 1):
         tmp = Mod(x, self.m)
@@ -97,7 +96,7 @@ class LCG:
     def prev(self, x, s = 1):
         tmp = Mod(x, self.m)
         for i in range(s):
-            tmp = self.v * (tmp - self.c)
+            tmp = (tmp - self.c) / self.a
         return int(tmp)
 
     @staticmethod
